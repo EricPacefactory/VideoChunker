@@ -1,0 +1,5 @@
+*.pyc
+__pycache__
+_old.py
+eolib/
+local/config/history.json
