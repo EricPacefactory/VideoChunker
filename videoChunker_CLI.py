@@ -216,8 +216,11 @@ def getFPS_background(video_source, fps_pipe, stop_event):
     
     # Set up run timing
     fps_minRunTime = dt.timedelta(seconds=10)
+    fps_maxRunTime = dt.timedelta(minutes=5)
     fps_startTime = dt.datetime.now()
     fps_endTime = fps_startTime + fps_minRunTime
+    fps_stopTime = fps_startTime + fps_maxRunTime
+    
     
     # Set up FPS calculation variables
     fps_blockDelta = dt.timedelta(seconds=2)
@@ -259,9 +262,12 @@ def getFPS_background(video_source, fps_pipe, stop_event):
         
         
         # Stop looping when an event signal is sent, as long as we've run past the target end time
-        if stop_event.is_set():
-            if fps_currentTime > fps_endTime: 
-                break
+        if stop_event.is_set() and (fps_currentTime > fps_endTime):
+            break
+            
+        # Stop if we've been running too long, regardless of the event signal state
+        if fps_currentTime > fps_stopTime:
+            break
         
     #  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .
         
@@ -307,6 +313,9 @@ timestamp_text = {"org": (0, 0),
                   "fontScale": 0.4,
                   "lineType": cv2.LINE_AA}
 
+
+# Check if we're running on a machine that can display images (might be headless!)
+displayEnabled = ("DISPLAY" in os.environ)
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -565,7 +574,7 @@ createNewChunk = chunkWriter(output_directory, global_start_time, global_end_tim
 #%% Video loop
 
 # Create a display window
-dispWindow = SimpleWindow("Display")
+dispWindow = SimpleWindow("Display", enabled=displayEnabled)
 
 # Set up video timing
 videoTimer = Timer(source_type = sourceType, 
@@ -656,11 +665,12 @@ try:
         # .............................................................................................................
         # Display frames
         
-        winExists = dispWindow.imshow(scaledFrame)
-        if not winExists: break
-    
-        reqBreak, keyPress = breakByKeypress(1)
-        if reqBreak: break
+        if displayEnabled:
+            winExists = dispWindow.imshow(scaledFrame)
+            if not winExists: break
+        
+            reqBreak, keyPress = breakByKeypress(1)
+            if reqBreak: break
     
     
         # .............................................................................................................
